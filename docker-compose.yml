@@ -1,0 +1,59 @@
+version: '3.2'
+
+services:
+  nginx:
+    image: nginx:1.19.2-alpine
+    container_name: test_nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./www:/var/www
+      - ./etc/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./etc/nginx/ssl_redirect.conf:/etc/nginx/ssl_redirect.conf
+      - ./etc/nginx/cert.conf:/etc/nginx/cert.conf
+      - ./etc/nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./etc/nginx/tools-enabled:/etc/nginx/tools-enabled
+      - ./etc/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - php
+
+  php:
+    build: builder/php
+    container_name: test_php
+    restart: always
+    volumes:
+      - ./www:/var/www
+    links:
+      - db
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0.28
+    container_name: test_db
+    restart: always
+    env_file:
+      - ".env"
+    volumes:
+      - ./db:/var/lib/mysql
+
+  dbadmin:
+    image: phpmyadmin:5.1.3
+    container_name: test_pma
+    links:
+      - db
+    env_file:
+      - ".env"
+    depends_on:
+      - db
+    
+  mail:
+    container_name: test_mail
+    restart: always
+    image: eaudeweb/mailtrap
+    environment:
+      - MT_USER=${MT_USER}
+      - MT_PASSWD=${MT_PASSWD}
+      - MT_MAILBOX_LIMIT=${MT_MAILBOX_LIMIT}
+      - MT_MESSAGE_LIMIT=${MT_MESSAGE_LIMIT}
